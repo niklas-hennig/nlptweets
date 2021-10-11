@@ -48,6 +48,7 @@ def clean_data(df):
         if column != "id":
             categories[column] = categories[column].str.strip().str[-1]
             categories[column] = pd.to_numeric(categories[column])
+            categories[column] = categories[column] == 0
     
     df = df.drop("categories", axis=1)
     df = pd.merge(df, categories, on="id")
@@ -67,7 +68,7 @@ def save_data(df, database_filename):
 
     """
     engine = create_engine(f'sqlite:///{database_filename}')
-    df.to_sql('disaster_tweets', engine, index=False)
+    df.to_sql('disaster_tweets', engine, index=False, if_exists="replace")
 
 
 def main():
