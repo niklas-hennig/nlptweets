@@ -52,7 +52,7 @@ def fit_model(model, X_train, y_train):
         # "vect__max_features": (None, 5000, 10000)
     }
 
-    cv = GridSearchCV(model, param_grid=parameters, verbose=3, n_jobs=4)
+    cv = GridSearchCV(model, param_grid=parameters, verbose=4)
     cv = cv.fit(X_train, y_train)
     print(cv.best_params_)
     
@@ -60,14 +60,14 @@ def fit_model(model, X_train, y_train):
 
 
 def evaluate_model(model, X_test, Y_test, category_names):    
-    y_preds = cv.predict(X_test)
+    y_preds = model.predict(X_test)
     df_preds = pd.DataFrame(y_preds, columns=category_names)
     for col in category_names:
         print(classification_report(Y_test[col].values, df_preds[col].values, target_names=[col]))
 
 
 def save_model(model, model_filepath):
-    pickle.dump(model, open(filename, 'wb'))
+    pickle.dump(model, open(model_filepath, 'wb'))
 
 
 def main():
@@ -81,7 +81,8 @@ def main():
         model = build_model()
         
         print('Training model...')
-        model = fit_model(model, X_train, Y_train)
+        model = model.fit(X_train, Y_train)
+        # model = fit_model(model, X_train, Y_train)
         
         print('Evaluating model...')
         evaluate_model(model, X_test, Y_test, category_names)
