@@ -44,15 +44,30 @@ def build_model():
     ])
     return pipeline
 
+def fit_model(model, X_train, y_train):
+    print('Grid Search for best parameters...')
+    parameters = {
+        "vect__ngram_range": ((1, 1), (1, 2)),
+        # "vect__max_df": (0.5, 1.0),
+        # "vect__max_features": (None, 5000, 10000)
+    }
 
-def evaluate_model(model, X_test, Y_test, category_names):
-    y_preds = model.predict(X_test)
+    cv = GridSearchCV(model, param_grid=parameters, verbose=3, n_jobs=4)
+    cv = cv.fit(X_train, y_train)
+    print(cv.best_params_)
+    
+    return cv.best_estimator_
+
+
+def evaluate_model(model, X_test, Y_test, category_names):    
+    y_preds = cv.predict(X_test)
+    df_preds = pd.DataFrame(y_preds, columns=category_names)
     for col in category_names:
-        print(classification_report(Y_test[col].values, y_preds[col].values, target_names=[col]))
+        print(classification_report(Y_test[col].values, df_preds[col].values, target_names=[col]))
 
 
 def save_model(model, model_filepath):
-    pickle.dump(pipeline, open(filename, 'wb'))
+    pickle.dump(model, open(filename, 'wb'))
 
 
 def main():
@@ -66,7 +81,7 @@ def main():
         model = build_model()
         
         print('Training model...')
-        model.fit(X_train, Y_train)
+        model = fit_model(model, X_train, Y_train)
         
         print('Evaluating model...')
         evaluate_model(model, X_test, Y_test, category_names)
