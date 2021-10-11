@@ -1,24 +1,58 @@
 import sys
+import pandas as pd
+from sqlalchemy import create_engine
+import nltk
+import pickle
+from nltk.stem import WordNetLemmatizer
+from nltk.corpus import stopwords
+from sklearn.pipeline import Pipeline
+from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
+from sklearn.multioutput import MultiOutputClassifier
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.model_selection import train_test_split, GridSearchCV
+
+from sklearn.metrics import classification_report
+nltk.download(['punkt', 'wordnet', 'stopwords'])
 
 
 def load_data(database_filepath):
-    pass
+    engine = create_engine(f'sqlite:///{database_filepath}')
+    df = pd.read_sql_table("disaster_tweets", engine)
+    X = df["message"]
+    y = df[[col for col in df.columns if col not in ["id", "message", "original", "genre"]]]
+    category_names = [col for col in df.columns if col not in ["id", "message", "original", "genre"]]
+    return X, y, category_names
 
 
 def tokenize(text):
-    pass
+    words = nltk.word_tokenize(text.lower())
+    words = [w for w in words if not w in stopwords.words('english')]
+    lemmatizer = WordNetLemmatizer()
+
+    clean_tokens = []
+    for token in words:
+        clean_tok = lemmatizer.lemmatize(token).strip()
+        clean_tokens.append(clean_tok)
+    return clean_tokens
 
 
 def build_model():
-    pass
+    pipeline = Pipeline([
+        ('vect', CountVectorizer(tokenizer=tokenize)),
+        ('tfidf', TfidfTransformer()),
+        ("class", MultiOutputClassifier(KNeighborsClassifier()))
+    ])
+    return pipeline
 
 
 def evaluate_model(model, X_test, Y_test, category_names):
-    pass
+    y_preds = model.predict(X_test)
+    for col in category_names:
+        print(classification_report(Y_test[col].values, y_preds[col].values, target_names=[col]))
 
 
 def save_model(model, model_filepath):
-    pass
+    pickle.dump(pipeline, open(filename, 'wb'))
 
 
 def main():
