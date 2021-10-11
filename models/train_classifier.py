@@ -16,6 +16,21 @@ nltk.download(['punkt', 'wordnet', 'stopwords'])
 
 
 def load_data(database_filepath):
+    """ Loads the specified datasets
+        Parameters
+        ----------
+        database_filepath : str
+            Path to database file
+
+        Returns
+        -------
+        pd.DataFrame
+            Messages as text
+        pd.DataFrame
+            Categoris for messages
+        list(str)
+            array containing all category names as ordered in y
+        """
     engine = create_engine(f'sqlite:///{database_filepath}')
     df = pd.read_sql_table("disaster_tweets", engine)
     X = df["message"]
@@ -25,6 +40,17 @@ def load_data(database_filepath):
 
 
 def tokenize(text):
+    """ Tokenizes a given text, including lemmatization
+        Parameters
+        ----------
+        text : str
+            Text to be processed
+
+        Returns
+        -------
+        list(str)
+            List of word(-stems)
+        """
     words = nltk.word_tokenize(text.lower())
     words = [w for w in words if not w in stopwords.words('english')]
     lemmatizer = WordNetLemmatizer()
@@ -37,6 +63,12 @@ def tokenize(text):
 
 
 def build_model():
+    """ Creates an instance of a sklearn pipeline for predicting categories
+        Returns
+        -------
+        pipeline(estimator)
+            Pipeline including TF-IDF and classifier
+        """
     pipeline = Pipeline([
         ('vect', CountVectorizer(tokenizer=tokenize)),
         ('tfidf', TfidfTransformer()),
@@ -44,12 +76,28 @@ def build_model():
     ])
     return pipeline
 
+
 def fit_model(model, X_train, y_train):
+    """ performs gridsearch for a given model
+        Parameters
+        ----------
+        model : estimator
+            Model to be optimized
+        X_train : list()
+            X-values from training dataset
+        y_train : list()
+            target values for training dataset
+
+        Returns
+        -------
+        estimator
+            best estimator found in gridsearch
+    """
     print('Grid Search for best parameters...')
     parameters = {
         "vect__ngram_range": ((1, 1), (1, 2)),
-        # "vect__max_df": (0.5, 1.0),
-        # "vect__max_features": (None, 5000, 10000)
+        "vect__max_df": (0.5, 1.0),
+        "vect__max_features": (None, 5000, 10000)
     }
 
     cv = GridSearchCV(model, param_grid=parameters, verbose=4)
@@ -59,14 +107,34 @@ def fit_model(model, X_train, y_train):
     return cv.best_estimator_
 
 
-def evaluate_model(model, X_test, Y_test, category_names):    
-    y_preds = model.predict(X_test)
+def evaluate_model(model, x_test, y_test, category_names):
+    """ Evaluates each output feature for a given number of categories
+        Parameters
+        ----------
+        model : estimator
+            Model to be evaluated
+        x_test : list()
+            X-values from test dataset
+        y_test : list()
+            target values for test dataset
+        category_names: list(str)
+            names of the categories
+    """
+    y_preds = model.predict(x_test)
     df_preds = pd.DataFrame(y_preds, columns=category_names)
     for col in category_names:
-        print(classification_report(Y_test[col].values, df_preds[col].values, target_names=[col]))
+        print(classification_report(y_test[col].values, df_preds[col].values))
 
 
 def save_model(model, model_filepath):
+    """ Saves a model to file
+        Parameters
+        ----------
+        model : estimator
+            Model to be saved
+        model_filepath: str
+            Path the model should be saved to
+        """
     pickle.dump(model, open(model_filepath, 'wb'))
 
 
@@ -81,13 +149,16 @@ def main():
         model = build_model()
         
         print('Training model...')
-        model = model.fit(X_train, Y_train)
-        # model = fit_model(model, X_train, Y_train)
+        # Only fit model
+        # model = model.fit(X_train, Y_train)
+        # Fit with gridsearch
+        model = fit_model(model, X_train, Y_train)
         
         print('Evaluating model...')
         evaluate_model(model, X_test, Y_test, category_names)
 
         print('Saving model...\n    MODEL: {}'.format(model_filepath))
+        # save_model(model, model_filepath)
         save_model(model, model_filepath)
 
         print('Trained model saved!')

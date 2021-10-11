@@ -8,7 +8,7 @@ from nltk.tokenize import word_tokenize
 from flask import Flask
 from flask import render_template, request, jsonify
 from plotly.graph_objs import Bar
-from sklearn.externals import joblib
+import joblib
 from sqlalchemy import create_engine
 
 
@@ -42,6 +42,14 @@ def index():
     # TODO: Below is an example - modify to extract data for your own visuals
     genre_counts = df.groupby('genre').count()['message']
     genre_names = list(genre_counts.index)
+
+    # Related messages request proportion
+    request_count = df[df["related"] == 1].groupby("request").count()["id"]
+    request_labels = ["Request", "No request"]
+
+    # Proprtion of disaster types
+    types_counts = df[df["related"] == 1][["floods", "storm", "fire"]].sum()
+    types_labels = list(types_counts.index)
     
     # create visuals
     # TODO: Below is an example - modify to create your own visuals
@@ -61,6 +69,42 @@ def index():
                 },
                 'xaxis': {
                     'title': "Genre"
+                }
+            }
+        },
+        {
+            'data': [
+                Bar(
+                    x=request_labels,
+                    y=request_count
+                )
+            ],
+
+            'layout': {
+                'title': 'Proportion of requests',
+                'yaxis': {
+                    'title': "Count"
+                },
+                'xaxis': {
+                    'title': "Type"
+                }
+            }
+        },
+        {
+            'data': [
+                Bar(
+                    x=types_labels,
+                    y=types_counts
+                )
+            ],
+
+            'layout': {
+                'title': 'Proportion of disaster type between floods, storms and fire',
+                'yaxis': {
+                    'title': "Count"
+                },
+                'xaxis': {
+                    'title': "Type"
                 }
             }
         }
